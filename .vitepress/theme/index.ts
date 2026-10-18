@@ -21,6 +21,7 @@ import AdvisorSection from './components/AdvisorSection.vue'
 import AboutTimeline from './components/AboutTimeline.vue'
 import TagCloud from './components/TagCloud.vue'
 import FeaturedPostBanner from './components/FeaturedPostBanner.vue'
+import ComprehensiveLeaders from './components/ComprehensiveLeaders.vue'
 import './custom.css'
 
 // GSAP 全局注册
@@ -51,5 +52,6 @@ export default {
     app.component('AboutTimeline', AboutTimeline)
     app.component('TagCloud', TagCloud)
     app.component('FeaturedPostBanner', FeaturedPostBanner)
+    app.component('ComprehensiveLeaders', ComprehensiveLeaders)
   },
 }

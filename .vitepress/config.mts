@@ -188,6 +188,7 @@ export default defineConfig({
       { text: '资源', link: '/resources/' },
       { text: '社团成员', link: '/members/' },
       { text: '项目展示', link: '/projects/' },
+      { text: '综测', link: '/comprehensive/' },
     ],
 
     sidebar: {
