@@ -2,8 +2,10 @@
   <div class="km-page">
     <div class="km-header">
       <h1>📊 综测管理</h1>
-      <p>维护社长与部长名单，一行一个姓名，保存后整表覆盖录入</p>
+      <p>维护社长与部长名单，一行一个姓名，保存后整表覆盖录入（社长最多 2 人、部长最多 10 人）</p>
     </div>
+
+    <p class="km-note">当前为占位名单，待补充：2 位社长与 10 位部长的正式姓名</p>
 
     <!-- Loading -->
     <div v-if="loading" class="loading">⏳ 加载中...</div>
@@ -14,7 +16,7 @@
         <span>社长名单 🏛️</span>
         <textarea
           v-model="presidentText"
-          rows="8"
+          rows="4"
           class="km-textarea"
           placeholder="一行一个姓名，例如：&#10;张三&#10;李四"
         ></textarea>
@@ -32,6 +34,7 @@
 
       <div class="km-form-actions">
         <span v-if="saved" class="km-tip">已保存</span>
+        <span v-else-if="errorMsg" class="km-error">{{ errorMsg }}</span>
         <button type="button" class="km-btn-save" :disabled="saving" @click="saveLeaders">
           {{ saving ? '保存中…' : '保存' }}
         </button>
@@ -57,6 +60,8 @@ const API = `${API_BASE}/api/comprehensive/admin/leaders`
 const loading = ref(true)
 const saving = ref(false)
 const saved = ref(false)
+// 后端的人数上限/长度校验返回的是纯文本说明（如「社长最多 2 人」），直接展示给录入人
+const errorMsg = ref('')
 
 const presidentText = ref('')
 const ministerText = ref('')
@@ -102,6 +107,7 @@ async function loadLeaders(showSpinner = true) {
 async function saveLeaders() {
   saving.value = true
   saved.value = false
+  errorMsg.value = ''
   try {
     const body = {
       president: parseLines(presidentText.value),
@@ -112,13 +118,16 @@ async function saveLeaders() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) {
+      const detail = (await res.text()).trim()
+      throw new Error(detail || `保存失败（HTTP ${res.status}）`)
+    }
 
     saved.value = true
     await loadLeaders(false)
-  } catch (e) {
+  } catch (e: any) {
     console.error('保存综测名单失败', e)
-    alert('保存失败')
+    errorMsg.value = e?.message || '保存失败'
   } finally {
     saving.value = false
   }
@@ -136,6 +145,13 @@ onMounted(loadLeaders)
 }
 .km-header h1 { margin: 0; font-size: 1.5rem; flex: 1; }
 .km-header p { color: var(--vp-c-text-2); margin: 0; flex: 2; font-size: 0.9rem; }
+
+.km-note {
+  margin: -0.75rem 0 1rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--vp-c-text-3);
+}
 
 .loading { text-align: center; padding: 3rem; color: var(--vp-c-text-2); }
 
@@ -199,6 +215,7 @@ onMounted(loadLeaders)
 }
 .km-btn-save:hover { background: #e8461f; }
 .km-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.km-error { font-size: 0.85rem; color: var(--vp-c-danger-1); }
 
 @media (max-width: 480px) {
   .km-header { flex-direction: column; align-items: flex-start; }

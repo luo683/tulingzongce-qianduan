@@ -28,8 +28,9 @@
               v-for="(name, idx) in block.names"
               :key="name + '-' + idx"
               class="dept-member-card"
+              :title="name"
             >
-              <div class="dm-avatar">{{ name[0] }}</div>
+              <div class="dm-avatar">{{ initialOf(name) }}</div>
               <div class="dm-info">
                 <h4 class="dm-name">{{ name }}</h4>
               </div>
@@ -48,6 +49,18 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+/**
+ * 综测 — 社长 / 部长名单展示
+ * 数据来源：GET /api/comprehensive/leaders → { president: string[], minister: string[] }
+ *
+ * 数据约定（占位数据，TODO 待补充正式名单）：
+ *   president 固定 2 条、minister 固定 10 条，均由后端 ComprehensiveService 的
+ *   PLACEHOLDER_PRESIDENT / PLACEHOLDER_MINISTER 提供，正式名单在 /admin/comprehensive 覆盖录入。
+ *
+ * 布局约定：两个分组共用同一套 CSS Grid 变量（--cl-cols / --cl-gap / --cl-row），
+ * 因此社长与部长的列宽、左边缘、gap、行高完全一致；列数随 1280 / 1024 / 768 / 480 断点递减。
+ */
 
 interface LeadersResponse {
   president?: string[]
@@ -70,6 +83,11 @@ const president = ref<string[]>([])
 const minister = ref<string[]>([])
 const blocks = ref<Block[]>([])
 const blockRefs = ref<Record<string, HTMLElement>>({})
+
+// ── 头像首字：空名兜底为「·」，避免网格内卡片高度参差 ──
+function initialOf(name: string): string {
+  return name && name.length ? name[0] : '·'
+}
 
 // ── 两个区块始终存在，即使某一组为空 ──
 function setBlockRef(role: string, el: any) {
@@ -96,10 +114,12 @@ function runAnimations() {
           opacity: 0,
           duration: 0.4,
           ease: 'power2.out',
+          // 动画结束后清掉 transform/opacity，避免残留位移破坏网格对齐
+          onComplete: () => gsap.set(title, { clearProps: 'transform,opacity' }),
           scrollTrigger: {
             trigger: title,
             start: 'top 88%',
-            toggleActions: 'play none none none',
+            once: true,
           },
         })
       }
@@ -110,12 +130,15 @@ function runAnimations() {
           y: 25,
           opacity: 0,
           duration: 0.45,
-          stagger: 0.08,
+          stagger: 0.05,
           ease: 'power2.out',
+          // 动画结束后清掉 transform/opacity：否则回滚页面时卡片会停在 y=25 的
+          // 起始位移上，同一行卡片高低不齐 —— 这正是「错位」的直接成因
+          onComplete: () => gsap.set(cards, { clearProps: 'transform,opacity' }),
           scrollTrigger: {
             trigger: el,
             start: 'top 88%',
-            toggleActions: 'play none none none',
+            once: true,
           },
         })
       }
@@ -126,10 +149,11 @@ function runAnimations() {
           opacity: 0,
           duration: 0.4,
           ease: 'power2.out',
+          onComplete: () => gsap.set(empty, { clearProps: 'transform,opacity' }),
           scrollTrigger: {
             trigger: empty,
             start: 'top 88%',
-            toggleActions: 'play none none none',
+            once: true,
           },
         })
       }
@@ -170,17 +194,41 @@ onMounted(() => {
 
 <style scoped>
 .cl-page {
-  margin: 1.5rem 0;
-  /* 显式纵向排列：确保「部长」永远在「社长」下面 */
+  /* 显式纵向排列：确保「社长」在上、「部长」在下 */
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  margin: 1.5rem 0;
 }
 
-/* 两个分组放在同一个区块里，部长紧接社长下方 */
+/* ── 分组容器 ──
+   两个分组共用同一套网格变量，社长与部长的
+   列宽 / 左边缘 / gap / 行高因此完全一致。 */
 .cl-blocks {
+  --cl-cols: 4;         /* 每行等宽列数（文档内容宽 688px 下 4 列刚好容纳头像 + 四字姓名） */
+  --cl-gap: 0.85rem;    /* 统一列间距与行间距 */
+  --cl-row: 5.25rem;    /* 统一行高（84px） */
+  --cl-pad-x: 1rem;     /* 卡片左右内边距 */
+  --cl-avatar: 44px;    /* 头像直径，决定卡片内基线 */
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  min-width: 0;
+}
+
+/* ── 等宽网格 ──
+   1) 列宽 = (容器宽 - gap × (n-1)) / n，天然等宽、左边缘严格对齐；
+   2) minmax(0, 1fr) 防止长姓名把某一列撑宽 → 不会挤压或换行错乱；
+   3) grid-auto-rows 固定行高 → 纵向排列整齐，10 人两行仍等距。 */
+.cl-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cl-cols), minmax(0, 1fr));
+  grid-auto-rows: var(--cl-row);
+  gap: var(--cl-gap);
+  align-items: stretch;
+  justify-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* ── 加载 / 错误状态 ── */
@@ -231,18 +279,16 @@ onMounted(() => {
   margin-right: 0.4rem;
 }
 
-.cl-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.85rem;
-}
-
-/* ── 卡片 ── */
+/* ── 卡片：高度由网格行高统一，内部不再用纵向 padding 撑高 ── */
 .dept-member-card {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  padding: 1rem 1.25rem;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 var(--cl-pad-x);
   border-radius: 10px;
   background: var(--vp-c-bg-soft);
   border: 1px solid var(--vp-c-border);
@@ -260,14 +306,14 @@ onMounted(() => {
 }
 
 .dm-avatar {
-  width: 48px;
-  height: 48px;
+  width: var(--cl-avatar);
+  height: var(--cl-avatar);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 1.1rem;
+  font-size: calc(var(--cl-avatar) / 2.6);
   font-weight: 700;
   flex-shrink: 0;
   background: linear-gradient(135deg, #FC5531, #ff8f6b);
@@ -275,7 +321,7 @@ onMounted(() => {
 
 .dm-info {
   display: block;
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -284,7 +330,12 @@ onMounted(() => {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
+  line-height: 1.4;
   color: var(--vp-c-text-1);
+  /* 单行省略：姓名再长也不换行，列宽与行高不会被打乱 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── 空状态 ── */
@@ -296,20 +347,38 @@ onMounted(() => {
   padding: 0.75rem 0.25rem;
 }
 
-/* ── 响应式 ── */
+/* ── 响应式：列数递减，列宽始终等宽对齐 ── */
+@media (max-width: 1279px) {
+  .cl-blocks {
+    --cl-cols: 3;
+  }
+}
+
 @media (max-width: 768px) {
-  .cl-grid {
-    grid-template-columns: 1fr;
+  .cl-blocks {
+    --cl-cols: 2;
+    --cl-gap: 0.7rem;
+    --cl-row: 4.75rem;
+    --cl-pad-x: 0.9rem;
+    --cl-avatar: 44px;
+  }
+
+  .dept-title {
+    font-size: 1.2rem;
   }
 }
 
 @media (max-width: 480px) {
-  .dept-title {
-    font-size: 1.15rem;
+  .cl-blocks {
+    --cl-cols: 1;
+    --cl-gap: 0.6rem;
+    --cl-row: 4.5rem;
+    --cl-pad-x: 0.8rem;
+    --cl-avatar: 40px;
   }
 
-  .dept-member-card {
-    padding: 0.85rem 1rem;
+  .dept-title {
+    font-size: 1.15rem;
   }
 
   .dm-name {
