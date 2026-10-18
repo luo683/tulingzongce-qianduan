@@ -11,31 +11,33 @@
 
     <!-- Content -->
     <template v-else>
-      <div
-        v-for="block in blocks"
-        :key="block.role"
-        class="cl-block"
-        :ref="el => setBlockRef(block.role, el)"
-      >
-        <h2 class="dept-title">
-          <span class="dept-icon">{{ block.icon }}</span>
-          {{ block.label }}
-        </h2>
+      <div class="cl-blocks">
+        <div
+          v-for="block in blocks"
+          :key="block.role"
+          class="cl-block"
+          :ref="el => setBlockRef(block.role, el)"
+        >
+          <h2 class="dept-title">
+            <span class="dept-icon">{{ block.icon }}</span>
+            {{ block.label }}
+          </h2>
 
-        <div v-if="block.names.length" class="cl-grid">
-          <div
-            v-for="(name, idx) in block.names"
-            :key="name + '-' + idx"
-            class="dept-member-card"
-          >
-            <div class="dm-avatar">{{ name[0] }}</div>
-            <div class="dm-info">
-              <h4 class="dm-name">{{ name }}</h4>
+          <div v-if="block.names.length" class="cl-grid">
+            <div
+              v-for="(name, idx) in block.names"
+              :key="name + '-' + idx"
+              class="dept-member-card"
+            >
+              <div class="dm-avatar">{{ name[0] }}</div>
+              <div class="dm-info">
+                <h4 class="dm-name">{{ name }}</h4>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div v-else class="cl-empty">暂未设置</div>
+          <div v-else class="cl-empty">暂未设置</div>
+        </div>
       </div>
     </template>
 
@@ -169,6 +171,16 @@ onMounted(() => {
 <style scoped>
 .cl-page {
   margin: 1.5rem 0;
+  /* 显式纵向排列：确保「部长」永远在「社长」下面 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 两个分组放在同一个区块里，部长紧接社长下方 */
+.cl-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 /* ── 加载 / 错误状态 ── */
@@ -201,10 +213,12 @@ onMounted(() => {
 
 /* ── 区块 ── */
 .cl-block {
-  margin-bottom: 2.5rem;
+  display: block;
+  margin-bottom: 0;
 }
 
 .dept-title {
+  display: block;
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--vp-c-text-1);
@@ -260,11 +274,13 @@ onMounted(() => {
 }
 
 .dm-info {
+  display: block;
   flex: 1;
   min-width: 0;
 }
 
 .dm-name {
+  display: block;
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
@@ -273,6 +289,7 @@ onMounted(() => {
 
 /* ── 空状态 ── */
 .cl-empty {
+  display: block;
   font-size: 0.85rem;
   font-style: italic;
   color: var(--vp-c-text-3);

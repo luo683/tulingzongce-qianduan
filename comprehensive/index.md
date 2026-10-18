@@ -15,11 +15,13 @@ import ComprehensiveLeaders from '../.vitepress/theme/components/ComprehensiveLe
 
 <style scoped>
 .comprehensive-section-header {
+  display: block;
   text-align: center;
   margin: 2rem 0 2.5rem;
 }
 
 .comprehensive-section-title {
+  display: block;
   font-size: 2rem;
   font-weight: 700;
   color: var(--vp-c-text-1);
@@ -27,6 +29,7 @@ import ComprehensiveLeaders from '../.vitepress/theme/components/ComprehensiveLe
 }
 
 .comprehensive-section-sub {
+  display: block;
   font-size: 1rem;
   color: var(--vp-c-text-3);
   margin: 0;
